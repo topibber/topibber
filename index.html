@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TOPIB BER</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:#0e1117;--card:#171c26;--line:#2a3140;--text:#e8ecf3;--mut:#8b94a6;--acc:#2ac4a5;--err:#ff6b6b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 Roboto,system-ui,sans-serif;padding:20px 16px 40px}
+h1{margin:0 0 4px;font-size:28px}
+.sub{color:var(--mut);margin:0 0 20px}
+.big{display:block;width:100%;text-align:left;border-radius:20px;padding:18px;margin-bottom:12px;font:inherit;cursor:pointer}
+.big b{display:block;font-size:19px;margin-bottom:4px}
+.client{background:var(--acc);color:#06241d;border:0}
+.master{background:transparent;color:var(--acc);border:1.5px solid var(--acc)}
+.view{display:none}.view.on{display:block}
+label{display:block;margin:14px 0 6px;color:var(--mut);font-size:14px}
+input,select,textarea{width:100%;background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:12px;padding:13px;font:inherit;text-overflow:ellipsis}
+textarea{min-height:90px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--acc);border-color:transparent}
+.err{border-color:var(--err)}
+.send{margin-top:22px;width:100%;background:var(--acc);color:#06241d;border:0;border-radius:14px;padding:15px;font:600 17px inherit;cursor:pointer}
+.send:disabled{opacity:.5}
+.back{background:none;border:0;color:var(--mut);font:inherit;padding:0 0 12px;cursor:pointer}
+.ok{text-align:center;padding:60px 10px}.ok h2{color:var(--acc)}
+</style>
+</head>
+<body>
+<h1>🛠️ TOPIB BER</h1>
+<p class="sub">Toshkent bo‘yicha ishonchli ustalarni toping</p>
+
+<!-- Bosh sahifa -->
+<div class="view on" id="home">
+  <button class="big client" onclick="show('fClient')"><b>Usta kerakmi?</b>So‘rov qoldiring — biz ustani topib beramiz →</button>
+  <button class="big master" onclick="show('fMaster')"><b>Siz ustamisiz?</b>Bizga qo‘shiling va mijozlar toping →</button>
+</div>
+
+<!-- Mijoz formasi -->
+<div class="view" id="fClient">
+  <button class="back" onclick="show('home')">← Orqaga</button>
+  <h2>Usta kerak</h2>
+  <label>Xizmat turi</label>
+  <select id="c_service"></select>
+  <label>Tuman</label>
+  <select id="c_district"></select>
+  <label>Manzil (ko‘cha, uy)</label>
+  <input id="c_address" placeholder="Masalan: Chilonzor 9, 12-uy">
+  <label>Telefon raqam</label>
+  <input id="c_phone" type="tel" inputmode="tel" placeholder="+998 90 123 45 67">
+  <label>Muammo haqida (ixtiyoriy)</label>
+  <textarea id="c_note" placeholder="Nima qilish kerak, qachon qulay..."></textarea>
+  <button class="send" id="c_btn" onclick="submitForm('client')">So‘rov yuborish</button>
+</div>
+
+<!-- Usta formasi -->
+<div class="view" id="fMaster">
+  <button class="back" onclick="show('home')">← Orqaga</button>
+  <h2>Usta sifatida qo‘shilish</h2>
+  <label>Ism familiya</label>
+  <input id="m_name" placeholder="Aliyev Vali">
+  <label>Xizmat turi</label>
+  <select id="m_service"></select>
+  <label>Ishlaydigan tumanlar</label>
+  <select id="m_district"></select>
+  <label>Tajriba (yil)</label>
+  <input id="m_exp" type="number" inputmode="numeric" min="0" max="60" placeholder="5">
+  <label>Telefon raqam</label>
+  <input id="m_phone" type="tel" inputmode="tel" placeholder="+998 90 123 45 67">
+  <label>O‘zingiz haqingizda (ixtiyoriy)</label>
+  <textarea id="m_note" placeholder="Qanday ishlarni qilasiz, narxlar..."></textarea>
+  <button class="send" id="m_btn" onclick="submitForm('master')">Ariza yuborish</button>
+</div>
+
+<!-- Muvaffaqiyat -->
+<div class="view" id="done">
+  <div class="ok"><h2 id="doneTitle"></h2><p id="doneText" class="sub"></p>
+  <button class="back" onclick="reset()">Bosh sahifaga qaytish</button></div>
+</div>
+
+<script>
+// ====== SOZLAMA: bot serveringiz manzili (HTTPS) ======
+const API = "";
+
+const SERVICES = ["Santexnik","Elektrik","Konditsioner","Maishiy texnika ta’miri","Ta’mirlash (remont)","Eshik-deraza","Mebel yig‘ish","Tozalash","Boshqa"];
+const DISTRICTS = ["Bektemir","Chilonzor","Yashnobod","Yakkasaroy","Yunusobod","Mirzo Ulug‘bek","Mirobod","Olmazor","Sergeli","Shayxontohur","Uchtepa","Yangihayot"];
+
+const tg = window.Telegram?.WebApp; tg?.ready(); tg?.expand();
+const $ = id => document.getElementById(id);
+
+function fill(id, list, ph){ $(id).innerHTML = `<option value="">${ph}</option>` + list.map(x=>`<option>${x}</option>`).join(""); }
+fill("c_service",SERVICES,"Tanlang"); fill("m_service",SERVICES,"Tanlang");
+fill("c_district",DISTRICTS,"Tanlang"); fill("m_district",DISTRICTS,"Tanlang");
+
+function show(id){ document.querySelectorAll(".view").forEach(v=>v.classList.remove("on")); $(id).classList.add("on"); scrollTo(0,0); }
+function reset(){ document.querySelectorAll("input,textarea,select").forEach(e=>e.value=""); show("home"); }
+
+const phoneOk = p => /^\+?998\d{9}$/.test(p.replace(/[\s-]/g,"")) || /^\d{9}$/.test(p.replace(/[\s-]/g,""));
+
+async function submitForm(type){
+  const p = type==="client" ? "c_" : "m_";
+  const fields = type==="client"
+    ? ["service","district","address","phone","note"]
+    : ["name","service","district","exp","phone","note"];
+  const req = type==="client" ? ["service","district","address","phone"] : ["name","service","district","exp","phone"];
+  const data = {};
+  let bad = false;
+  fields.forEach(f=>{
+    const el = $(p+f); data[f] = el.value.trim();
+    const miss = req.includes(f) && !data[f];
+    const wrongPhone = f==="phone" && data[f] && !phoneOk(data[f]);
+    el.classList.toggle("err", miss || wrongPhone);
+    if(miss || wrongPhone) bad = true;
+  });
+  if(bad){ tg?.HapticFeedback?.notificationOccurred("error"); alert("Iltimos, belgilangan maydonlarni to‘g‘ri to‘ldiring"); return; }
+
+  const btn = $(p+"btn"); btn.disabled = true;
+  try{
+    const r = await fetch(`${API}/api/${type}`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ ...data, initData: tg?.initData || "" })
+    });
+    if(!r.ok) throw 0;
+    tg?.HapticFeedback?.notificationOccurred("success");
+    $("doneTitle").textContent = type==="client" ? "So‘rov qabul qilindi ✅" : "Ariza yuborildi ✅";
+    $("doneText").textContent = type==="client" ? "Tez orada usta siz bilan bog‘lanadi." : "Admin tekshirgach, siz bilan bog‘lanamiz.";
+    show("done");
+  }catch(e){ alert("Xatolik. Qayta urinib ko‘ring."); }
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>
